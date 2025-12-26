@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using System.Reflection.Metadata;
 
 namespace MovieRental.Data
 {
@@ -8,17 +6,24 @@ namespace MovieRental.Data
 	{
 		public DbSet<Movie.Movie> Movies { get; set; }
 		public DbSet<Rental.Rental> Rentals { get; set; }
+		public DbSet<Customer.Customer> Customers { get; set; }
 
-		private string DbPath { get; }
+        protected string DbPath { get; }
 
-		public MovieRentalDbContext()
+		public MovieRentalDbContext(DbContextOptions<MovieRentalDbContext> options) : base(options)
 		{
 			var folder = Environment.SpecialFolder.LocalApplicationData;
 			var path = Environment.GetFolderPath(folder);
-			DbPath = System.IO.Path.Join(path, "movierental.db");
+			DbPath = Path.Join(path, "movierental.db");
 		}
 
 		protected override void OnConfiguring(DbContextOptionsBuilder options)
-			=> options.UseSqlite($"Data Source={DbPath}");
+		{
+			if (!options.IsConfigured)
+			{
+				options.UseSqlite($"Data Source={DbPath}");
+			}
+			base.OnConfiguring(options);
+		}
 	}
 }

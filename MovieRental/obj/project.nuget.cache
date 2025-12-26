@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "1YYUqq7CDfU=",
+  "dgSpecHash": "9dqKToIIYnk=",
   "success": true,
-  "projectFilePath": "C:\\Acme\\NTXclean\\MovieRental\\MovieRental\\MovieRental.csproj",
+  "projectFilePath": "c:\\Acme\\NTXclean\\MovieRental\\MovieRental\\MovieRental.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\csdias\\.nuget\\packages\\microsoft.data.sqlite.core\\9.0.4\\microsoft.data.sqlite.core.9.0.4.nupkg.sha512",
     "C:\\Users\\csdias\\.nuget\\packages\\microsoft.entityframeworkcore\\9.0.4\\microsoft.entityframeworkcore.9.0.4.nupkg.sha512",
