@@ -31,9 +31,6 @@ namespace MovieRentalUnitTests
                 new MovieRental.Movie.Movie { Id = 3, Title = "Movie Three"} 
             ]);
 
-            DataContext.Customers.Add(
-                new Customer { Id = 1, Name = "Jhon Doe" });
-
             DataContext.Rentals.AddRange([
                 new MovieRental.Rental.Rental { Id = 1, MovieId = 1, CustomerId = 1, 
                     DaysRented = 2, PaymentMethod = "MbWay" },

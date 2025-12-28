@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using MovieRental.PaymentProviders;
 using MovieRental.Rental;
 
 namespace MovieRentalUnitTests.Rental
@@ -10,7 +11,7 @@ namespace MovieRentalUnitTests.Rental
     {
         private DatabaseFixture _databaseFixture;
         private Mock<ILogger<RentalFeatures>> _mockLogger { get; } = new();
-        private Mock<IServiceProvider> _mockServiceProvider { get; } = new();
+        private Mock<IPaymentProviderFactory> _mockPaymentProviderFactory { get; } = new();
 
         public RentalFeatureUnitTests(DatabaseFixture databaseFixture)
         {
@@ -20,26 +21,40 @@ namespace MovieRentalUnitTests.Rental
         [Theory]
         [InlineData("MbWay")]
         [InlineData("PayPal")]
-        public async Task SaveChangesAsync_ValidInput_SavesAsync(string paymentMethod)
+        public async Task SaveChangesAsync_PaymentIsTrue_SavesRentalAsync(string paymentMethod)
         {
             // Arrange
             _databaseFixture.Initialize();
             var rental = new MovieRental.Rental.Rental { 
-                Id = 1, CustomerId = 1, MovieId = 1, 
+                // Leave Id as 0 so EF will treat this as a new entity
+                CustomerId = 1, MovieId = 1, 
                 PaymentMethod = paymentMethod, DaysRented = 3 };
 
-            var sut = new RentalFeatures(_databaseFixture.DataContext, _mockServiceProvider.Object, _mockLogger.Object);
+            var paymentProvider = paymentMethod switch
+            {
+                "MbWay" => new Mock<IPaymentProvider>(),
+                "PayPal" => new Mock<IPaymentProvider>(),
+                _ => throw new ArgumentException("Invalid payment method")
+            };
+
+            paymentProvider.Setup(m => m.Pay(It.IsAny<double>()))
+                .ReturnsAsync(true);
+
+            _mockPaymentProviderFactory.Setup(m => m.GetPaymentProvider(It.IsAny<string>()))
+                .Returns(paymentProvider.Object);
+
+            var sut = new RentalFeatures(_databaseFixture.DataContext, _mockPaymentProviderFactory.Object, _mockLogger.Object);
 
             // Act
-            var result = await sut.SaveRentalAsync(rental);
+            var response = await sut.SaveRentalAsync(rental);
 
             // Assert
-            result.Should().Be(1);
+            response.Should().NotBeNull();
+            response.isSuccess.Should().BeTrue();
+            response.GetData().Should().NotBeNull();
 
-            var moviesInDb = await _databaseFixture.DataContext.Movies.ToListAsync();
-            moviesInDb.Should().HaveCount(4);
-
-            await _databaseFixture.DisposeAsync();
+            var rentalsInDb = await _databaseFixture.DataContext.Rentals.ToListAsync();
+            rentalsInDb.Should().HaveCount(3);
         }
 
         [Fact]
@@ -48,7 +63,7 @@ namespace MovieRentalUnitTests.Rental
             // Arrange
             _databaseFixture.Initialize();
             var sut = new RentalFeatures(_databaseFixture.DataContext, 
-                _mockServiceProvider.Object, _mockLogger.Object);
+                _mockPaymentProviderFactory.Object, _mockLogger.Object);
 
             var customerName = "Jhon Doe";
 
@@ -57,8 +72,6 @@ namespace MovieRentalUnitTests.Rental
 
             // Assert
             result.Should().NotBeNull();
-
-            _databaseFixture.Dispose();
         }
 
         [Fact]
@@ -67,7 +80,7 @@ namespace MovieRentalUnitTests.Rental
             // Arrange
             _databaseFixture.Initialize();
             var sut = new RentalFeatures(_databaseFixture.DataContext, 
-                _mockServiceProvider.Object, _mockLogger.Object);
+                _mockPaymentProviderFactory.Object, _mockLogger.Object);
 
             var customerName = "Jane Doe";
 
@@ -78,8 +91,6 @@ namespace MovieRentalUnitTests.Rental
             response.Should().NotBeNull();
             response.isSuccess.Should().BeFalse();
             response.GetErrors()?.Any(a => a.Message == $"No rentals found for the customer '{customerName}'.");
-
-            _databaseFixture.Dispose();
         }
 
         [Fact]
@@ -96,7 +107,7 @@ namespace MovieRentalUnitTests.Rental
                 DaysRented = 3
             };
 
-            var sut = new RentalFeatures(_databaseFixture.DataContext, _mockServiceProvider.Object, _mockLogger.Object);
+            var sut = new RentalFeatures(_databaseFixture.DataContext, _mockPaymentProviderFactory.Object, _mockLogger.Object);
 
             // Act
             var result = await sut.SaveRentalAsync(rental);
@@ -104,9 +115,6 @@ namespace MovieRentalUnitTests.Rental
             // Assert
             result.isSuccess.Should().BeFalse();
             result.GetErrors()?.Any(a => a.Message == $"No payment provider registered for PaymentMethod {rental.PaymentMethod}.");
-
-
-            await _databaseFixture.DisposeAsync();
         }
     }
 }

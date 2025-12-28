@@ -16,9 +16,8 @@ builder.Services.AddEntityFrameworkSqlite()
 builder.Services.AddScoped<ICustomerFeatures, CustomerFeatures>();
 builder.Services.AddScoped<IMovieFeatures, MovieFeatures>();
 builder.Services.AddScoped<IRentalFeatures, RentalFeatures>();
-//builder.Services.AddScoped<IPaymentProviderFactory, PaymentProviderFactory>();
-//builder.Services.AddScoped<IPaymentProvider, PayPalProvider>();
-//builder.Services.AddScoped<IPaymentProvider, MbWayProvider>();
+
+builder.Services.AddScoped<IPaymentProviderFactory, PaymentProviderFactory>();
 
 builder.Services.AddKeyedScoped<IPaymentProvider, PayPalProvider>("PayPal");
 builder.Services.AddKeyedScoped<IPaymentProvider, MbWayProvider>("MbWay");

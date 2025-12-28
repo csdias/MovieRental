@@ -10,15 +10,15 @@ namespace MovieRental.Rental
 	public class RentalFeatures : IRentalFeatures
 	{
 		private readonly MovieRentalDbContext _movieRentalDbCtx;
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IPaymentProviderFactory _paymentProviderFactory;
         private readonly ILogger<RentalFeatures> _log;
 
         public RentalFeatures(MovieRentalDbContext movieRentalDb, 
-            IServiceProvider serviceProvider,
+            IPaymentProviderFactory paymentProviderFactory,
             ILogger<RentalFeatures> log)
 		{
 			_movieRentalDbCtx = movieRentalDb;
-            _serviceProvider = serviceProvider;
+            _paymentProviderFactory = paymentProviderFactory;
             _log = log;
         }
 
@@ -189,22 +189,12 @@ namespace MovieRental.Rental
                     }
                     return response;
                 }
+                
+                var paymentProvider = _paymentProviderFactory.GetPaymentProvider(rental.PaymentMethod);
 
-                IPaymentProvider paymentProvider;
+                double pricePerDay = 3.75; // This could be dynamic based on movie or other factors
 
-                try
-                {
-                    paymentProvider = _serviceProvider.GetRequiredKeyedService<IPaymentProvider>(rental.PaymentMethod);
-                }
-                catch (NotSupportedException)
-                {
-                    var msg = $"No payment provider registered for PaymentMethod {rental.PaymentMethod}.";
-                    _log.LogError(msg, rental.PaymentMethod);
-                    response.AddError(msg);
-                    return response;
-                }
-
-                var isPaymentSuccess = await paymentProvider.Pay(rental.DaysRented * 3.75);
+                var isPaymentSuccess = await paymentProvider.Pay(rental.DaysRented * pricePerDay);
 
                 if (!isPaymentSuccess)
                 {
